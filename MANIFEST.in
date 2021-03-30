@@ -3,4 +3,4 @@ include requirements.txt
 include requirements-test.txt
 include VERSION
 include Makefile
-include {{cookiecutter.directory_name}}/py.typed
+include {{cookiecutter.project_slug}}/py.typed

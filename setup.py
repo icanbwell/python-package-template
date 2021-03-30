@@ -83,5 +83,5 @@ setup(
     dependency_links=[],
     include_package_data=True,
     zip_safe=False,
-    package_data={"{{cookiecutter.directory_name}}": ["py.typed"]}
+    package_data={"{{cookiecutter.project_slug}}": ["py.typed"]}
 )
