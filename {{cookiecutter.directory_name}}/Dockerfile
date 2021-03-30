@@ -11,6 +11,6 @@ RUN pipenv lock && pipenv sync --dev --system
 COPY . /src
 
 # run pre-commit once so it installs all the hooks and subsequent runs are fast
-RUN cd /src && pre-commit install
+#RUN cd /src && pre-commit install
 
 # USER 1001
