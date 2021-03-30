@@ -8,7 +8,7 @@ Install cookiecutter:
 
 Run cookiecutter:
 
-`cookiecutter https://github.com/imranq2/python-package-template.git`
+`cookiecutter -f https://github.com/imranq2/python-package-template.git -o ../`
 
 This will ask you for the parameters.
 

@@ -5,9 +5,10 @@ USER root
 COPY Pipfile* /src/
 WORKDIR /src
 
+RUN python -m pip install --no-cache-dir pipenv
 RUN pipenv sync --dev --system
 
-COPY .. /src
+COPY . /src
 
 # run pre-commit once so it installs all the hooks and subsequent runs are fast
 RUN pre-commit install
