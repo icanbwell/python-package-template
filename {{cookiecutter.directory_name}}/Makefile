@@ -41,3 +41,25 @@ update: down Pipfile.lock setup-pre-commit  ## Updates all the packages using Pi
 tests:
 	docker-compose run --rm --name {{cookiecutter.package_name}} dev pytest tests
 
+.PHONY:shell
+shell:devdocker ## Brings up the bash shell in dev docker
+	docker-compose run --rm --name {{cookiecutter.package_name}} dev /bin/bash
+
+.PHONY:build
+build:
+	docker-compose run --rm --name {{cookiecutter.package_name}} dev rm -rf dist/
+	docker-compose run --rm --name {{cookiecutter.package_name}} dev python3 setup.py sdist bdist_wheel
+
+.PHONY:testpackage
+testpackage:build
+	docker-compose run --rm --name {{cookiecutter.package_name}} dev python3 -m twine upload -u __token__ --repository testpypi dist/*
+# password can be set in TWINE_PASSWORD. https://twine.readthedocs.io/en/latest/
+
+.PHONY:package
+package:build
+	docker-compose run --rm --name {{cookiecutter.package_name}} dev python3 -m twine upload -u __token__ --repository pypi dist/*
+# password can be set in TWINE_PASSWORD. https://twine.readthedocs.io/en/latest/
+
+.PHONY:shell
+shell:devdocker ## Brings up the bash shell in dev docker
+	docker-compose run --rm --name {{cookiecutter.package_name}} dev /bin/bash
