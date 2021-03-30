@@ -63,3 +63,10 @@ package:build
 .PHONY:shell
 shell:devdocker ## Brings up the bash shell in dev docker
 	docker-compose run --rm --name {{cookiecutter.package_name}} dev /bin/bash
+
+.DEFAULT_GOAL := help
+.PHONY: help
+help: ## Show this help.
+	# from https://marmelab.com/blog/2016/02/29/auto-documented-makefile.html
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
+
