@@ -7,7 +7,7 @@ WORKDIR /src
 
 RUN pipenv sync --dev --system
 
-COPY . /src
+COPY .. /src
 
 # run pre-commit once so it installs all the hooks and subsequent runs are fast
 RUN pre-commit install
