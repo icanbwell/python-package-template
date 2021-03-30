@@ -1,6 +1,6 @@
 {
-  "directory_name": "Hello",
   "package_name": "Howdy",
+  "directory_name": "Hello",
   "author": "Julie",
   "author_email": "foo@email.com",
   "package_description": "description",
