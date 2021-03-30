@@ -1,6 +1,5 @@
 {
   "package_name": "Howdy",
-  "directory_name": "Hello",
   "project_slug": "{{ cookiecutter.package_name.lower().replace(' ', '_').replace('-', '_') }}",
   "author": "Julie",
   "author_email": "foo@email.com",
