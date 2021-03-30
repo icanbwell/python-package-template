@@ -22,3 +22,5 @@ Alternatively, create a cookiecutter.json
     "package_github_url": "url",
 
 }
+
+After generation is complete, run `make init` to set up your environment.
