@@ -1,0 +1,8 @@
+{
+  "directory_name": "Hello",
+  "package_name": "Howdy",
+  "author": "Julie",
+  "author_email": "foo@email.com",
+  "package_description": "description",
+  "package_github_url": "url"
+}
