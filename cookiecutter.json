@@ -5,5 +5,8 @@
   "author": "Julie",
   "author_email": "foo@email.com",
   "package_description": "{{ cookiecutter.package_name }}",
-  "package_github_url": "url"
+  "package_github_url": "url",
+  "_copy_without_render": [
+    ".github/*.yml"
+  ]
 }
