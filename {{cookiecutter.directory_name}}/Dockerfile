@@ -6,7 +6,7 @@ COPY Pipfile* /src/
 WORKDIR /src
 
 RUN python -m pip install --no-cache-dir pipenv
-RUN pipenv lock && pipenv sync --dev --system
+RUN pipenv lock && pipenv sync --dev --system && pipenv-setup sync --pipfile
 
 COPY . /src
 

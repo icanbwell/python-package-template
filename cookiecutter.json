@@ -1,7 +1,7 @@
 {
   "directory_name": "my_repo_folder",
   "package_name": "{{ cookiecutter.directory_name|replace('-', '') }}",
-  "project_slug": "{{ cookiecutter.package_name.lower().replace(' ', '_').replace('-', '_') }}",
+  "project_slug": "{{ cookiecutter.package_name.lower().replace(' ', '_').replace('-', '_')..replace('.', '_') }}",
   "author": "Julie",
   "author_email": "foo@email.com",
   "package_description": "{{ cookiecutter.package_name }}",
