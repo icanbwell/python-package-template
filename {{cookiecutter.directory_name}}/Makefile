@@ -35,10 +35,11 @@ run-pre-commit: setup-pre-commit
 .PHONY:update
 update: down Pipfile.lock setup-pre-commit  ## Updates all the packages using Pipfile
 	docker-compose run --rm --name {{cookiecutter.package_name}} dev pipenv sync && \
-	make devdocker
+	make devdocker && \
+	make pipenv-setup
 
 .PHONY:tests
-tests:
+tests: up
 	docker-compose run --rm --name {{cookiecutter.package_name}} dev pytest tests
 
 .PHONY:shell
@@ -58,7 +59,7 @@ testpackage:build
 .PHONY:package
 package:build
 	docker-compose run --rm --name {{cookiecutter.package_name}} dev python3 -m twine upload -u __token__ --repository pypi dist/*
-# password can be set in TWINE_PASSWORD. https://twine.readthedocs.io/en/latest/
+# password can be set in TWINE_PASSWORD. https://twine.readthedocs.io/en/latest/ (note this is the token not your password)
 
 .DEFAULT_GOAL := help
 .PHONY: help
@@ -66,3 +67,6 @@ help: ## Show this help.
 	# from https://marmelab.com/blog/2016/02/29/auto-documented-makefile.html
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
 
+.PHONY:pipenv-setup
+pipenv-setup:devdocker ## Brings up the bash shell in dev docker
+	docker-compose run --rm --name mockserver_client dev pipenv-setup sync --pipfile
