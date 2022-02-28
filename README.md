@@ -9,7 +9,9 @@ Cookiecutter template for creating a new Python Package
 5. Run cookiecutter:`cookiecutter -f https://github.com/imranq2/python-package-template.git -o ../`
 6. This will ask you for the parameters.  Be sure to use your github repo name as the directory name
 7. After generation is complete, run `make init` to set up your environment.
-8. To automate the publishing of the package, set the PYPI secret in your github repo
+8. Run `mkae up` to bring up your environment in docker.
+9. If using PyCharm, choose docker-compose as your interpreter and select the "dev" container
+10. To automate the publishing of the package, set the PYPI secret in your github repo
 
 
 
