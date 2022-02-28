@@ -7,5 +7,5 @@ services:
       context: .
     volumes:
       - ./:/src/
-    container_name: spf_dev
+    container_name: {{cookiecutter.package_name}}_dev
     working_dir: /src
