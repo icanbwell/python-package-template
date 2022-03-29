@@ -11,7 +11,7 @@ Cookiecutter template for creating a new Python Package
 7. After generation is complete, run `make init` to set up your environment.
 8. Run `mkae up` to bring up your environment in docker.
 9. If using PyCharm, choose docker-compose as your interpreter and select the "dev" container
-10. To automate the publishing of the package, set the PYPI secret in your github repo
+10. To automate the publishing of the package, set the PYPI secret in your github repo.  We recommend you first set this to a pypi token that is scoped to all projects, create a release and then change the secret to a pypi token scoped to just this project.
 
 
 
