@@ -7,18 +7,18 @@ name = "pypi"
 
 [dev-packages]
 setuptools=">=60.9.3"
-wheel=">=0.37.1"
-twine=">=3.8.0"
-pre-commit=">=2.17.0"
-autoflake=">=1.4"
-flake8 = ">=4.0.1"
-mypy = ">=0.931"
-pytest = ">=7.0.1"
-black = ">=22.1.0"
+wheel = ">=0.38.4"
+twine=">=4.0.2"
+pre-commit=">=2.20.0"
+autoflake=">=2.0.0"
+mypy = ">=0.991"
+pytest = ">=7.2.0"
+black = ">=22.12.0"
 pipenv-setup = ">=3.2.0"
+vistir="==0.6.1" # https://github.com/Madoshakalaka/pipenv-setup/issues/138
 
 [requires]
 python_version = "3.7"
 
 [pipenv]
-allow_prereleases = true
+allow_prereleases = false
