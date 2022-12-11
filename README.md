@@ -10,7 +10,7 @@ Cookiecutter template for creating a new Python Package
 6. This will ask you for the parameters.  Be sure to use your github repo name as the directory name
 7. After generation is complete, run `make init` to set up your environment.
 8. Run `mkae up` to bring up your environment in docker.
-9. If using PyCharm, choose docker-compose as your interpreter and select the "dev" container
+9. If using PyCharm, choose docker-compose as your interpreter and select the "dev" container.  Use the Virtualenv Environment option and set the Interpreter as `/usr/local/bin/python3`
 10. To automate the publishing of the package, set the `PYPI` secret in your github repo to a pypi token.  We recommend you first set this to a pypi token that is scoped to all projects, create a release and then change the secret to a pypi token scoped to just this project.
 
 
