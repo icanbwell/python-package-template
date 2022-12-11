@@ -3,7 +3,7 @@ LANG=en_US.utf-8
 export LANG
 
 Pipfile.lock: Pipfile
-	docker-compose run --rm --name {{cookiecutter.package_name}} dev pipenv lock --dev
+	docker-compose run --rm --name {{cookiecutter.package_name}} dev sh -c "rm -f Pipfile.lock && pipenv lock --dev --clear"
 
 .PHONY:devdocker
 devdocker: ## Builds the docker for dev
