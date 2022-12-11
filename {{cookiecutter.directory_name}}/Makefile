@@ -40,7 +40,7 @@ update: down Pipfile.lock setup-pre-commit  ## Updates all the packages using Pi
 
 .PHONY:tests
 tests: up
-	docker-compose run --rm --name {{cookiecutter.package_name}} dev pytest tests
+	docker-compose run --rm --name {{cookiecutter.package_name}} dev pytest tests {{cookiecutter.project_slug}}
 
 .PHONY:shell
 shell:devdocker ## Brings up the bash shell in dev docker
