@@ -9,18 +9,18 @@ Pipfile.lock:
 
 .PHONY:devdocker
 devdocker: ## Builds the docker for dev
-	docker-compose build
+	docker compose build
 
 .PHONY:init
 init: Pipfile.lock devdocker up setup-pre-commit  ## Initializes the local developer environment
 
 .PHONY: up
-up: Pipfile.lock
-	docker-compose up --build -d --remove-orphans
+up:
+	docker compose up --build -d --remove-orphans
 
 .PHONY: down
 down:
-	docker-compose down
+	docker compose down
 
 .PHONY:clean-pre-commit
 clean-pre-commit: ## removes pre-commit hook
@@ -41,25 +41,25 @@ update: down Pipfile.lock setup-pre-commit  ## Updates all the packages using Pi
 
 .PHONY:tests
 tests: up
-	docker-compose run --rm --name {{cookiecutter.package_name}} dev pytest tests {{cookiecutter.project_slug}}
+	docker compose run --rm --name {{cookiecutter.package_name}} dev pytest tests {{cookiecutter.project_slug}}
 
 .PHONY:shell
 shell:devdocker ## Brings up the bash shell in dev docker
-	docker-compose run --rm --name {{cookiecutter.package_name}} dev sh
+	docker compose run --rm --name {{cookiecutter.package_name}} dev sh
 
 .PHONY:build
 build:
-	docker-compose run --rm --name {{cookiecutter.package_name}} dev rm -rf dist/
-	docker-compose run --rm --name {{cookiecutter.package_name}} dev python3 setup.py sdist bdist_wheel
+	docker compose run --rm --name {{cookiecutter.package_name}} dev rm -rf dist/
+	docker compose run --rm --name {{cookiecutter.package_name}} dev python3 setup.py sdist bdist_wheel
 
 .PHONY:testpackage
 testpackage:build
-	docker-compose run --rm --name {{cookiecutter.package_name}} dev python3 -m twine upload -u __token__ --repository testpypi dist/*
+	docker compose run --rm --name {{cookiecutter.package_name}} dev python3 -m twine upload -u __token__ --repository testpypi dist/*
 # password can be set in TWINE_PASSWORD. https://twine.readthedocs.io/en/latest/
 
 .PHONY:package
 package:build
-	docker-compose run --rm --name {{cookiecutter.package_name}} dev python3 -m twine upload -u __token__ --repository pypi dist/*
+	docker compose run --rm --name {{cookiecutter.package_name}} dev python3 -m twine upload -u __token__ --repository pypi dist/*
 # password can be set in TWINE_PASSWORD. https://twine.readthedocs.io/en/latest/ (note this is the token not your password)
 
 .DEFAULT_GOAL := help

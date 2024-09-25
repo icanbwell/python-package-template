@@ -11,7 +11,7 @@ on:
 jobs:
   build_and_test:
     # The type of runner that the job will run on
-    runs-on: [self-hosted, main]
+    runs-on: ubuntu-latest
 
     steps:
       # Checks-out your repository
@@ -20,11 +20,18 @@ jobs:
         with:
           python-version: '3.12'
 
+      - name: Pull docker images
+        run: docker compose pull
+
       - name: pre-commit
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: make run-pre-commit && make clean-pre-commit
 
       # setup and install everything and run tests
       - name: up
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: make up
 
       - name: Set correct permissions for tests

@@ -16,5 +16,4 @@ WORKDIR /sourcecode
 # Clean up unnecessary files
 RUN git config --global --add safe.directory /sourcecode
 
-# Define the command to run
-CMD ["sh", "-c", "if [ \"$PRE_COMMIT_ALL_FILES\" = true ] ; then pre-commit run --all-files ; else pre-commit run ; fi"]
+CMD ["pre-commit", "run", "--all-files"]
