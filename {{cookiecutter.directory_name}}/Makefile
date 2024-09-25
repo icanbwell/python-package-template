@@ -2,8 +2,10 @@ LANG=en_US.utf-8
 
 export LANG
 
-Pipfile.lock: Pipfile
-	docker-compose run --rm --name {{cookiecutter.package_name}} dev sh -c "rm -f Pipfile.lock && pipenv lock --dev --clear"
+.PHONY: Pipfile.lock
+Pipfile.lock:
+	docker compose --progress=plain build --no-cache --build-arg RUN_PIPENV_LOCK=true dev && \
+	docker compose --progress=plain run --rm dev sh -c "cp -f /tmp/Pipfile.lock /usr/src/{{cookiecutter.project_slug}}/Pipfile.lock"
 
 .PHONY:devdocker
 devdocker: ## Builds the docker for dev
@@ -34,7 +36,6 @@ run-pre-commit: setup-pre-commit
 
 .PHONY:update
 update: down Pipfile.lock setup-pre-commit  ## Updates all the packages using Pipfile
-	docker-compose run --rm --name {{cookiecutter.package_name}} dev pipenv sync && \
 	make devdocker && \
 	make pipenv-setup
 
@@ -44,7 +45,7 @@ tests: up
 
 .PHONY:shell
 shell:devdocker ## Brings up the bash shell in dev docker
-	docker-compose run --rm --name {{cookiecutter.package_name}} dev /bin/bash
+	docker-compose run --rm --name {{cookiecutter.package_name}} dev sh
 
 .PHONY:build
 build:
@@ -68,5 +69,6 @@ help: ## Show this help.
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
 
 .PHONY:pipenv-setup
-pipenv-setup:devdocker ## Brings up the bash shell in dev docker
-	docker-compose run --rm --name mockserver_client dev pipenv-setup sync --pipfile
+pipenv-setup:devdocker ## Run pipenv-setup to update setup.py with latest dependencies
+	docker compose run --rm dev sh -c "pipenv run pipenv install --skip-lock --categories \"pipenvsetup\" && pipenv run pipenv-setup sync --pipfile" && \
+	make run-pre-commit
