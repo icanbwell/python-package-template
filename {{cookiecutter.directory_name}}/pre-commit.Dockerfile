@@ -1,9 +1,20 @@
-FROM python:3.12-slim
+FROM python:3.12-alpine3.20
 
-COPY ${project_root}/Pipfile* ./
-RUN apt-get update && \
-    apt-get install -y git && \
-    pip install pipenv && \
-    pipenv sync --dev --system
+# Install git, build-essential, and pipenv
+RUN apk add --no-cache git build-base && \
+    pip install pipenv
+
+# Copy Pipfile and Pipfile.lock
+COPY Pipfile* ./
+
+# Install dependencies using pipenv
+RUN pipenv sync --dev --system
+
+# Set the working directory
 WORKDIR /sourcecode
-CMD pre-commit run --all-files
+
+# Clean up unnecessary files
+RUN git config --global --add safe.directory /sourcecode
+
+# Define the command to run
+CMD ["sh", "-c", "if [ \"$PRE_COMMIT_ALL_FILES\" = true ] ; then pre-commit run --all-files ; else pre-commit run ; fi"]
