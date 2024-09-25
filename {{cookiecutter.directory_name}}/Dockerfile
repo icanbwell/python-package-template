@@ -2,6 +2,9 @@
 # This stage is responsible for setting up the environment and installing Python packages using Pipenv.
 FROM public.ecr.aws/docker/library/python:3.12-alpine3.20 AS python_packages
 
+# Set terminal width (COLUMNS) and height (LINES)
+ENV COLUMNS=300
+
 # Define an argument to control whether to run pipenv lock (used for updating Pipfile.lock)
 ARG RUN_PIPENV_LOCK=false
 
@@ -17,7 +20,7 @@ WORKDIR /usr/src/{{cookiecutter.project_slug}}/
 # Copy Pipfile and Pipfile.lock to the working directory
 # Pipfile defines the Python packages required for the project
 # Pipfile.lock ensures consistency by locking the exact versions of packages
-COPY Pipfile Pipfile.lock /usr/src/{{cookiecutter.project_slug}}/
+COPY Pipfile* /usr/src/{{cookiecutter.project_slug}}/
 
 # Show the current pip configuration (for debugging purposes)
 RUN pip config list
@@ -45,6 +48,9 @@ RUN pip list -v
 # Stage 2: Final runtime image for the application
 # This stage creates a minimal image with only the runtime dependencies and the application code.
 FROM public.ecr.aws/docker/library/python:3.12-alpine3.20
+
+# Set terminal width (COLUMNS) and height (LINES)
+ENV COLUMNS=300
 
 # Define an argument to control whether to run pipenv lock (not used in this stage)
 ARG RUN_PIPENV_LOCK=false

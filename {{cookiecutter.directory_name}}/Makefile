@@ -12,7 +12,7 @@ devdocker: ## Builds the docker for dev
 	docker-compose build
 
 .PHONY:init
-init: devdocker up setup-pre-commit  ## Initializes the local developer environment
+init: Pipfile.lock devdocker up setup-pre-commit  ## Initializes the local developer environment
 
 .PHONY: up
 up: Pipfile.lock
