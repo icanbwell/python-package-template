@@ -13,24 +13,16 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
     - name: Set up Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: '3.12'
 
-    - name: Get Previous tag
-      id: previoustag
-      uses: WyriHaximus/github-action-get-previous-tag@master
-
     - name: Set release tag in VERSION
-      uses: DamianReeves/write-file-action@master
-      with:
-        path: VERSION
-        contents: |
-          ${{ steps.previoustag.outputs.tag }}
-        write-mode: overwrite
+      run: |
+        echo "${{ github.event.release.tag_name }}" > VERSION
 
       # setup and install everything and run tests
     - name: build docker
@@ -42,6 +34,17 @@ jobs:
         TWINE_PASSWORD: ${{ secrets.PYPI }}
       run: |
         docker compose run --rm -e TWINE_USERNAME=${TWINE_USERNAME} -e TWINE_PASSWORD=${TWINE_PASSWORD} dev sh -c "
+          pip install twine wheel &&
           python setup.py sdist bdist_wheel &&
           twine upload dist/*
         "
+
+    - name: list files in dist
+      run: ls -haltR dist
+
+    - name: Persist wheels directory
+      uses: actions/upload-artifact@v4
+      with:
+        name: wheel_${{ github.event.release.tag_name }}
+        path: dist/*.whl  # Only upload wheel files
+        if-no-files-found: error
