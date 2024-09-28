@@ -55,6 +55,8 @@ ENV COLUMNS=300
 # Define an argument to control whether to run pipenv lock (not used in this stage)
 ARG RUN_PIPENV_LOCK=false
 
+# Install common tools and dependencies (git is required for some Python packages)
+RUN apk add --no-cache git
 # Install runtime dependencies required by the application (e.g., for shapely, grpcio, scipy, google-crc32 and numpy)
 # You can use auditwheel to check any package and identify the native library dependencies
 # RUN apk add --no-cache curl libstdc++ libffi
