@@ -28,7 +28,8 @@ clean-pre-commit: ## removes pre-commit hook
 
 .PHONY:setup-pre-commit
 setup-pre-commit:
-	cp ./pre-commit-hook ./.git/hooks/pre-commit
+	cp ./pre-commit-hook ./.git/hooks/pre-commit && \
+	chmod +x ./.git/hooks/pre-commit
 
 .PHONY:run-pre-commit
 run-pre-commit: setup-pre-commit
