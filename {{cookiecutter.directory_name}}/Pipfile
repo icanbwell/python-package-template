@@ -21,6 +21,12 @@ mypy = ">=1.8.0"
 pytest = ">=8.1.1"
 pytest-asyncio = ">=0.23.6"
 black = ">=24.2.0"
+# bandit is needed for security checks
+bandit = ">=1.8.3"
+# ruff is needed for linting
+ruff = ">=0.11.5"
+# pytest-cov is needed for measuring test coverage
+pytest-cov = ">=6.1.1"
 
 # These dependencies are required for pipenv-setup.  They conflict with ones above, so we install these
 # only when running pipenv-setup
