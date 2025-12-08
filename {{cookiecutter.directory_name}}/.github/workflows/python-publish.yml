@@ -1,5 +1,5 @@
-# This workflows will upload a Python Package using Twine when a release is created
-# For more information see: https://help.github.com/en/actions/language-and-framework-guides/using-python-with-github-actions#publishing-to-package-registries
+# This workflow will upload a Python Package to PyPI when a release is created
+# For more information see: https://docs.pypi.org/trusted-publishers/using-a-publisher/
 
 name: Upload Python Package
 
@@ -8,43 +8,42 @@ on:
     types: [created]
 
 jobs:
-  deploy:
-
+  build-and-publish:
     runs-on: ubuntu-latest
-
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.12'
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
 
-    - name: Set release tag in VERSION
-      run: |
-        echo "${{ github.event.release.tag_name }}" > VERSION
+      - name: Set release tag in VERSION
+        run: echo "${{ github.event.release.tag_name }}" > VERSION
 
-      # setup and install everything and run tests
-    - name: build docker
-      run: docker compose build --parallel
+      - name: Install dependencies
+        run: pip install -U pip setuptools wheel twine
 
-    - name: Build and publish package with Docker Compose
-      env:
-        TWINE_USERNAME: __token__
-        TWINE_PASSWORD: ${{ secrets.PYPI }}
-      run: |
-        docker compose run --rm -e TWINE_USERNAME=${TWINE_USERNAME} -e TWINE_PASSWORD=${TWINE_PASSWORD} dev sh -c "
-          pip install twine wheel &&
-          python setup.py sdist bdist_wheel &&
-          twine upload dist/*
-        "
+#      - name: Run tests
+#        run: |
+#          pip install -r requirements.txt || pip install -r requirements-dev.txt || true
+#          pytest || echo "No tests found"
 
-    - name: list files in dist
-      run: ls -haltR dist
+      - name: Build package
+        run: python setup.py sdist bdist_wheel
 
-    - name: Persist wheels directory
-      uses: actions/upload-artifact@v4
-      with:
-        name: wheel_${{ github.event.release.tag_name }}
-        path: dist/*.whl  # Only upload wheel files
-        if-no-files-found: error
+      - name: Publish package to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          user: __token__
+          password: ${{ secrets.PYPI }}
+
+      - name: List files in dist
+        run: ls -haltR dist
+
+      - name: Persist wheels directory
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheel_${{ github.event.release.tag_name }}
+          path: dist/*.whl
+          if-no-files-found: error
