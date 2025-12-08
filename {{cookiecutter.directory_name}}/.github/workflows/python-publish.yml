@@ -29,15 +29,10 @@ jobs:
         run: echo "${{ github.event.release.tag_name }}" > VERSION
 
       - name: Install dependencies
-        run: pip install -U pip setuptools wheel
-
-#      - name: Run tests
-#        run: |
-#          pip install -r requirements.txt || pip install -r requirements-dev.txt || true
-#          pytest || echo "No tests found"
+        run: pip install -U pip setuptools wheel build
 
       - name: Build package
-        run: python setup.py sdist bdist_wheel
+        run: python -m build
 
       - name: Publish package to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
