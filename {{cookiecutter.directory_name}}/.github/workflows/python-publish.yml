@@ -10,6 +10,13 @@ on:
 jobs:
   build-and-publish:
     runs-on: ubuntu-latest
+    # Specifying a GitHub environment is optional, but strongly encouraged
+    environment: pypi
+    permissions:
+      # IMPORTANT: this permission is mandatory for Trusted Publishing
+      id-token: write
+      contents: read
+
     steps:
       - uses: actions/checkout@v4
 
@@ -34,9 +41,6 @@ jobs:
 
       - name: Publish package to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          user: __token__
-          password: ${{ secrets.PYPI }}
 
       - name: List files in dist
         run: ls -haltR dist
