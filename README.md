@@ -14,5 +14,4 @@ Cookiecutter template for creating a new Python Package
 11. For the first time publish to pypi, you will need to set a creator token:
   Run `export TWINE_PASSWORD=pypi-xxx` using the creator token
   Run `make package`.  This will create the new package in pypi.
-  Login to pypi.org and create a token specific to this package.  Use that token below
-12. To automate the publishing of the package, set the `PYPI` secret in your github repo to a pypi token.  We recommend you first set this to a pypi token that is scoped to all projects, create a release and then change the secret to a pypi token scoped to just this project.
+12. Login to pypi.org and setup a Trusted Publisher relationship to your Github repo.  Now when you create a new release on github it will automatically publish to pypi.
