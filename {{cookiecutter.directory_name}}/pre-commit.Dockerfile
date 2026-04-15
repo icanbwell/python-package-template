@@ -1,14 +1,14 @@
 FROM public.ecr.aws/docker/library/python:3.12-alpine3.20
 
-# Install git, build-essential, and pipenv
-RUN apk add --no-cache git build-base && \
-    pip install pipenv
+# Install git, build-essential, and uv
+RUN apk add --no-cache git build-base
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /usr/local/bin/
 
-# Copy Pipfile and Pipfile.lock
-COPY Pipfile* ./
+# Copy dependency files
+COPY pyproject.toml uv.lock ./
 
-# Install dependencies using pipenv
-RUN pipenv sync --dev --system
+# Install dependencies using uv
+RUN uv sync --group dev --system --frozen
 
 # Set the working directory
 WORKDIR /sourcecode

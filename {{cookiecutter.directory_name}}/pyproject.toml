@@ -1,0 +1,72 @@
+[project]
+name = "{{cookiecutter.package_name}}"
+version = "0.0.1"
+description = "{{cookiecutter.package_description}}"
+readme = "README.md"
+requires-python = ">=3.12"
+license = "Apache-2.0"
+authors = [
+    { name = "{{cookiecutter.author}}", email = "{{cookiecutter.author_email}}" },
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: OS Independent",
+]
+dependencies = []
+dynamic = ["version"]
+
+[project.urls]
+Homepage = "{{cookiecutter.package_github_url}}"
+
+[build-system]
+requires = ["setuptools>=69.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["{{cookiecutter.project_slug}}*"]
+
+[tool.setuptools.package-data]
+"{{cookiecutter.project_slug}}" = ["py.typed"]
+
+[tool.setuptools.dynamic]
+version = {file = "VERSION"}
+
+[dependency-groups]
+dev = [
+    "setuptools>=69.0",
+    "wheel>=0.43.0",
+    "twine>=4.0.2",
+    "pre-commit>=3.6.1",
+    "autoflake>=2.2.0",
+    "mypy>=1.8.0",
+    "pytest>=8.1.1",
+    "pytest-asyncio>=0.23.6",
+    "black>=24.2.0",
+    "bandit>=1.8.3",
+    "ruff>=0.11.5",
+    "pytest-cov>=6.1.1",
+]
+
+[tool.pytest.ini_options]
+addopts = "--capture=fd"
+log_cli = true
+log_cli_level = "INFO"
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+
+[tool.mypy]
+python_version = "3.12"
+warn_return_any = true
+warn_unused_configs = true
+
+[[tool.mypy.overrides]]
+module = "setuptools.*"
+ignore_missing_imports = true
+
+[tool.ruff]
+line-length = 120
+
+[tool.ruff.lint]
+ignore = ["E501"]
