@@ -4,22 +4,34 @@ FROM public.ecr.aws/docker/library/python:3.12-alpine3.20 AS python_packages
 # Set terminal width (COLUMNS) and height (LINES)
 ENV COLUMNS=300
 
+# Set to true (via --build-arg) to (re)generate uv.lock instead of trusting an existing one.
+# Used by `make lock` to bootstrap uv.lock on a fresh checkout, or to refresh it.
+ARG RUN_UV_LOCK=false
+
 # Install common tools and dependencies (git is required for some Python packages)
 RUN apk add --no-cache git
 
 # Install uv, a fast Python package manager
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /usr/local/bin/
+COPY --from=ghcr.io/astral-sh/uv:0.12.13@sha256:b485bd65cc2cf1c9a93b3554012c9c3778cf7b1b5fd3d3096ce9e1226c97e1e6 /uv /uvx /usr/local/bin/
 
 # Set the working directory inside the container
 WORKDIR /usr/src/{{cookiecutter.project_slug}}/
 
-# Copy dependency files
-COPY pyproject.toml uv.lock /usr/src/{{cookiecutter.project_slug}}/
+# Copy dependency files. uv.lock* (glob) tolerates a missing lockfile on a fresh checkout.
+COPY pyproject.toml uv.lock* /usr/src/{{cookiecutter.project_slug}}/
 
-# Install all dependencies including dev group using uv
-# --system installs into the system Python (no virtualenv)
-# --frozen uses the lockfile as-is without updating it
-RUN uv sync --group dev --system --frozen
+# Regenerate uv.lock when asked to (fresh checkout or explicit refresh), then install all
+# dependencies including the dev group into the system Python (no virtualenv).
+# `uv sync` has no --system flag (it always manages a project venv), so we go through
+# `uv export` + `uv pip install --system` instead, same as everything else in this stage.
+# --frozen uses the lockfile as-is without updating it.
+RUN if [ "$RUN_UV_LOCK" = "true" ]; then rm -f uv.lock && uv lock; fi && \
+    uv export --frozen --no-emit-project --group dev -o /tmp/requirements.txt && \
+    uv pip install --system -r /tmp/requirements.txt && \
+    rm -f /tmp/requirements.txt
+
+# Expose the (possibly just-generated) lockfile so `make lock` can copy it back to the host.
+RUN cp -f uv.lock /tmp/uv.lock
 
 # Create necessary directories and list their contents (for debugging and verification)
 RUN mkdir -p /usr/local/lib/python3.12/site-packages && ls -halt /usr/local/lib/python3.12/site-packages
@@ -42,7 +54,7 @@ ENV COLUMNS=300
 RUN apk add --no-cache git
 
 # Install uv
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /usr/local/bin/
+COPY --from=ghcr.io/astral-sh/uv:0.12.13@sha256:b485bd65cc2cf1c9a93b3554012c9c3778cf7b1b5fd3d3096ce9e1226c97e1e6 /uv /uvx /usr/local/bin/
 
 # Set environment variables for project configuration
 ENV PROJECT_DIR=/usr/src/{{cookiecutter.project_slug}}
@@ -56,7 +68,7 @@ RUN mkdir -p ${PROMETHEUS_MULTIPROC_DIR}
 WORKDIR ${PROJECT_DIR}
 
 # Copy dependency files into the runtime image
-COPY pyproject.toml uv.lock ${PROJECT_DIR}/
+COPY pyproject.toml uv.lock* ${PROJECT_DIR}/
 
 # Copy installed Python packages from the previous stage
 COPY --from=python_packages /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages

@@ -6,8 +6,17 @@ export LANG
 devdocker: ## Builds the docker for dev
 	docker compose build
 
+.PHONY:lock
+lock: ## Regenerates uv.lock from pyproject.toml (also bootstraps it on a fresh checkout)
+	/bin/sh -c '\
+		trap "docker rm -f {{cookiecutter.package_name}}-lock-container >/dev/null 2>&1; docker rmi -f {{cookiecutter.package_name}}-lock-builder >/dev/null 2>&1" EXIT; \
+		docker build --build-arg RUN_UV_LOCK=true --target python_packages -t {{cookiecutter.package_name}}-lock-builder . && \
+		docker create --name {{cookiecutter.package_name}}-lock-container {{cookiecutter.package_name}}-lock-builder >/dev/null && \
+		docker cp {{cookiecutter.package_name}}-lock-container:/tmp/uv.lock ./uv.lock \
+	'
+
 .PHONY:init
-init: devdocker up setup-pre-commit  ## Initializes the local developer environment
+init: lock devdocker up setup-pre-commit  ## Initializes the local developer environment
 
 .PHONY: up
 up:
@@ -46,7 +55,7 @@ shell:devdocker ## Brings up the bash shell in dev docker
 .PHONY:build
 build:
 	docker compose run --rm --name {{cookiecutter.package_name}} dev rm -rf dist/
-	docker compose run --rm --name {{cookiecutter.package_name}} dev python3 -m build
+	docker compose run --rm --name {{cookiecutter.package_name}} dev uv build
 
 .PHONY:testpackage
 testpackage:build
