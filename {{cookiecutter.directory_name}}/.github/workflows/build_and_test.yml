@@ -15,7 +15,6 @@ concurrency:
 
 permissions:
   contents: read
-  id-token: write
 
 jobs:
   build_and_test:
@@ -31,13 +30,43 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v6
+      # root-mirror lives in the services account (856965016623). This runner pool's
+      # federated identity is a Kubernetes-service-account token, not GitHub's native
+      # Actions OIDC -- `permissions: id-token: write` alone does NOT authenticate here
+      # (confirmed by testing: "web identity token provided could not be validated"), so
+      # role-to-assume must be explicit. Matches cms-hte-patient-matching-service's
+      # proven-working .github/actions/ecr-login.
+      - name: Configure AWS credentials (services account, for root-mirror ECR pulls)
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-region: us-east-1
+          role-to-assume: arn:aws:iam::856965016623:role/services-k8s-service-account-github-actions-runner
+          role-session-name: ${{ github.run_id }}-ecr
 
       - name: Login to Amazon ECR
         uses: aws-actions/amazon-ecr-login@v2
+
+      # The self-hosted `main` runner doesn't ship `make` or a modern Docker Compose CLI
+      # plugin -- unlike ubuntu-latest, which has both preinstalled.
+      - name: Install make
+        run: |
+          sudo apt-get update && sudo apt-get install -y make
+          sudo apt-get clean
+
+      # Verified against the release's published sha256 checksum, not downloaded and run blind.
+      - name: Install Docker Compose CLI plugin
+        run: |
+          set -eu
+          DC_VERSION=v2.24.6
+          DC_ASSET="docker-compose-linux-x86_64"
+          DC_URL="https://github.com/docker/compose/releases/download/${DC_VERSION}/${DC_ASSET}"
+          mkdir -p ~/.docker/cli-plugins/
+          curl -SL "${DC_URL}" -o /tmp/docker-compose
+          curl -SL "${DC_URL}.sha256" -o /tmp/docker-compose.sha256
+          echo "$(cut -d' ' -f1 /tmp/docker-compose.sha256)  /tmp/docker-compose" | sha256sum -c -
+          mv /tmp/docker-compose ~/.docker/cli-plugins/docker-compose
+          chmod +x ~/.docker/cli-plugins/docker-compose
+          docker compose version
 
       - name: Pull docker images
         run: docker compose pull
