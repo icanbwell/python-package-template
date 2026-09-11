@@ -1,37 +1,38 @@
-# Stage 1: Base image to install common dependencies and lock Python dependencies
-# This stage is responsible for setting up the environment and installing Python packages using Pipenv.
-FROM public.ecr.aws/docker/library/python:3.12-alpine3.20 AS python_packages
+# Stage 1: Install production dependencies only.
+FROM 856965016623.dkr.ecr.us-east-1.amazonaws.com/root-mirror/python:3.12-alpine3.20 AS python_packages
 
 # Set terminal width (COLUMNS) and height (LINES)
 ENV COLUMNS=300
 
-# Define an argument to control whether to run pipenv lock (used for updating Pipfile.lock)
-ARG RUN_PIPENV_LOCK=false
+# Set to true (via --build-arg) to (re)generate uv.lock instead of trusting an existing one.
+# Used by `make lock` to bootstrap uv.lock on a fresh checkout, or to refresh it.
+ARG RUN_UV_LOCK=false
 
 # Install common tools and dependencies (git is required for some Python packages)
 RUN apk add --no-cache git
 
-# Install pipenv, a tool for managing Python project dependencies
-RUN pip install pipenv
+# Install uv, a fast Python package manager
+COPY --from=ghcr.io/astral-sh/uv:0.12.13@sha256:b485bd65cc2cf1c9a93b3554012c9c3778cf7b1b5fd3d3096ce9e1226c97e1e6 /uv /uvx /usr/local/bin/
 
 # Set the working directory inside the container
 WORKDIR /usr/src/{{cookiecutter.project_slug}}/
 
-# Copy Pipfile and Pipfile.lock to the working directory
-# Pipfile defines the Python packages required for the project
-# Pipfile.lock ensures consistency by locking the exact versions of packages
-COPY Pipfile* /usr/src/{{cookiecutter.project_slug}}/
+# Copy dependency files. uv.lock* (glob) tolerates a missing lockfile on a fresh checkout.
+COPY pyproject.toml uv.lock* /usr/src/{{cookiecutter.project_slug}}/
 
-# Show the current pip configuration (for debugging purposes)
-RUN pip config list
+# Regenerate uv.lock when asked to (fresh checkout or explicit refresh), then install
+# production dependencies only into the system Python (no virtualenv, no dev group --
+# pytest/mypy/ruff/bandit/twine stay out of this stage and everything built from it).
+# `uv sync` has no --system flag (it always manages a project venv), so we go through
+# `uv export` + `uv pip install --system` instead.
+# --frozen uses the lockfile as-is without updating it.
+RUN if [ "$RUN_UV_LOCK" = "true" ]; then rm -f uv.lock && uv lock; fi && \
+    uv export --frozen --no-emit-project --no-dev -o /tmp/requirements.txt && \
+    uv pip install --system -r /tmp/requirements.txt && \
+    rm -f /tmp/requirements.txt
 
-# Conditionally run pipenv lock to update the Pipfile.lock based on the argument provided
-# If RUN_PIPENV_LOCK is true, it regenerates the Pipfile.lock file with the latest versions of dependencies
-RUN if [ "$RUN_PIPENV_LOCK" = "true" ]; then echo "Locking Pipfile" && rm -f Pipfile.lock && pipenv lock --dev --clear --verbose --extra-pip-args="--prefer-binary"; fi
-
-# Install all dependencies using the locked versions in Pipfile.lock
-# --dev installs development dependencies, --system installs them globally in the container's Python environment
-RUN pipenv sync --dev --system --verbose --extra-pip-args="--prefer-binary"
+# Expose the (possibly just-generated) lockfile so `make lock` can copy it back to the host.
+RUN cp -f uv.lock /tmp/uv.lock
 
 # Create necessary directories and list their contents (for debugging and verification)
 RUN mkdir -p /usr/local/lib/python3.12/site-packages && ls -halt /usr/local/lib/python3.12/site-packages
@@ -42,27 +43,28 @@ RUN python -c "import platform; print(platform.platform()); print(platform.archi
 RUN python -c "import sys; print(sys.platform, sys.version, sys.maxsize > 2**32)"
 
 # Debug pip installation and list installed packages with verbosity
-RUN pip debug --verbose
-RUN pip list -v
+RUN uv pip list
 
-# Stage 2: Final runtime image for the application
-# This stage creates a minimal image with only the runtime dependencies and the application code.
-FROM public.ecr.aws/docker/library/python:3.12-alpine3.20
+# Stage 2: Add the dev dependency group (pytest, mypy, ruff, bandit, twine, pre-commit) on
+# top of the production install. Only consumed by the `development` stage below.
+FROM python_packages AS python_packages_dev
+
+RUN uv export --frozen --no-emit-project --group dev -o /tmp/requirements.txt && \
+    uv pip install --system -r /tmp/requirements.txt && \
+    rm -f /tmp/requirements.txt
+
+# Stage 3: Production runtime image -- ships only what the `python_packages` stage
+# installed, never the dev dependency group.
+FROM 856965016623.dkr.ecr.us-east-1.amazonaws.com/root-mirror/python:3.12-alpine3.20 AS production
 
 # Set terminal width (COLUMNS) and height (LINES)
 ENV COLUMNS=300
 
-# Define an argument to control whether to run pipenv lock (not used in this stage)
-ARG RUN_PIPENV_LOCK=false
-
 # Install common tools and dependencies (git is required for some Python packages)
 RUN apk add --no-cache git
-# Install runtime dependencies required by the application (e.g., for shapely, grpcio, scipy, google-crc32 and numpy)
-# You can use auditwheel to check any package and identify the native library dependencies
-# RUN apk add --no-cache curl libstdc++ libffi
 
-# Install pipenv to manage and run the application
-RUN pip install --no-cache-dir pipenv
+# Install uv
+COPY --from=ghcr.io/astral-sh/uv:0.12.13@sha256:b485bd65cc2cf1c9a93b3554012c9c3778cf7b1b5fd3d3096ce9e1226c97e1e6 /uv /uvx /usr/local/bin/
 
 # Set environment variables for project configuration
 ENV PROJECT_DIR=/usr/src/{{cookiecutter.project_slug}}
@@ -75,28 +77,19 @@ RUN mkdir -p ${PROMETHEUS_MULTIPROC_DIR}
 # Set the working directory for the project
 WORKDIR ${PROJECT_DIR}
 
-# Copy the Pipfile and Pipfile.lock files into the runtime image
-COPY Pipfile* ${PROJECT_DIR}
+# Copy dependency files into the runtime image
+COPY pyproject.toml uv.lock* ${PROJECT_DIR}/
 
-# Copy installed Python packages from the previous stage
+# Copy installed Python packages from the production-only stage
 COPY --from=python_packages /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages
 COPY --from=python_packages /usr/local/bin /usr/local/bin
 
 # Copy the application code into the runtime image
 COPY ./{{cookiecutter.project_slug}} ${PROJECT_DIR}
 
-# Copy the Pipfile.lock from the previous stage in case it was locked
-COPY --from=python_packages /usr/src/{{cookiecutter.project_slug}}/Pipfile.lock /usr/src/{{cookiecutter.project_slug}}/Pipfile.lock
-
-# Copy Pipfile.lock to a temporary directory so it can be retrieved if needed
-COPY --from=python_packages /usr/src/{{cookiecutter.project_slug}}/Pipfile.lock /tmp/Pipfile.lock
-
 # Create directories and list their contents (for debugging and verification)
 RUN mkdir -p /usr/local/lib/python3.12/site-packages && ls -halt /usr/local/lib/python3.12/site-packages
 RUN mkdir -p /usr/local/bin && ls -halt /usr/local/bin
-
-# Install the dependencies using pipenv in the final runtime environment
-RUN pipenv sync --dev --system --extra-pip-args="--prefer-binary"
 
 # Expose port 5000 for the application
 EXPOSE 5000
@@ -112,3 +105,17 @@ RUN chown -R appuser:appgroup ${PROJECT_DIR} /usr/local/lib/python3.12/site-pack
 
 # Switch to the restricted user to enhance security
 USER appuser
+
+# Stage 4: Development image -- production plus the dev tooling, used by docker-compose
+# for local dev/test/pre-commit workflows. Not the default build target (see below).
+FROM production AS development
+
+USER root
+COPY --from=python_packages_dev /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages
+COPY --from=python_packages_dev /usr/local/bin /usr/local/bin
+RUN chown -R appuser:appgroup /usr/local/lib/python3.12/site-packages /usr/local/bin
+USER appuser
+
+# Final stage, re-declared so that `docker build .` with no --target defaults to
+# production, not development (which is the last stage physically defined above).
+FROM production

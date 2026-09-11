@@ -7,13 +7,13 @@
 - Provide direct, prioritized feedback with blockers first.
 
 ## Repository Context Summary
-- **Stack**: Python 3.12, Docker, Docker Compose, Pipenv, pytest.
+- **Stack**: Python 3.12, Docker, Docker Compose, uv, pytest.
 - **Key locations**:
   - `{{cookiecutter.project_slug}}/` – package source.
   - `tests/` – test suite.
   - `docker-compose.yml` – dev environment services.
   - `Makefile` – common commands (`make init`, `make up`, `make tests`, etc.).
-- **Tooling**: pre-commit hook in `pre-commit-hook` and config in `setup.cfg`.
+- **Tooling**: pre-commit hook in `pre-commit-hook` and config in `pyproject.toml`.
 
 ## Code Style and Quality Rules
 - Prefer clear, explicit imports; avoid relative imports unless the project already uses them.
@@ -57,8 +57,8 @@
 - Add unit tests under `tests/` for new logic.
 
 ## Dependencies & Build
-- Manage dependencies via Pipenv.
-- If `Pipfile` changes, regenerate `Pipfile.lock` using the Makefile target.
+- Manage dependencies via uv and `pyproject.toml`.
+- If `pyproject.toml` changes, regenerate `uv.lock` with `make update`.
 
 ## Quick Start & Common Commands
 - `make init` – set up the local dev environment.

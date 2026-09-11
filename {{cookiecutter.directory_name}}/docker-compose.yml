@@ -5,6 +5,7 @@ services:
     build:
       dockerfile: Dockerfile
       context: .
+      target: development
     volumes:
       - ./:/usr/src/{{cookiecutter.project_slug}}
     container_name: {{cookiecutter.package_name}}_dev
