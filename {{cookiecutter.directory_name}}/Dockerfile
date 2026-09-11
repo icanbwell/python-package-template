@@ -1,5 +1,5 @@
-# Stage 1: Base image to install common dependencies and lock Python dependencies
-FROM public.ecr.aws/docker/library/python:3.12-alpine3.20 AS python_packages
+# Stage 1: Install production dependencies only.
+FROM 856965016623.dkr.ecr.us-east-1.amazonaws.com/root-mirror/python:3.12-alpine3.20 AS python_packages
 
 # Set terminal width (COLUMNS) and height (LINES)
 ENV COLUMNS=300
@@ -20,13 +20,14 @@ WORKDIR /usr/src/{{cookiecutter.project_slug}}/
 # Copy dependency files. uv.lock* (glob) tolerates a missing lockfile on a fresh checkout.
 COPY pyproject.toml uv.lock* /usr/src/{{cookiecutter.project_slug}}/
 
-# Regenerate uv.lock when asked to (fresh checkout or explicit refresh), then install all
-# dependencies including the dev group into the system Python (no virtualenv).
+# Regenerate uv.lock when asked to (fresh checkout or explicit refresh), then install
+# production dependencies only into the system Python (no virtualenv, no dev group --
+# pytest/mypy/ruff/bandit/twine stay out of this stage and everything built from it).
 # `uv sync` has no --system flag (it always manages a project venv), so we go through
-# `uv export` + `uv pip install --system` instead, same as everything else in this stage.
+# `uv export` + `uv pip install --system` instead.
 # --frozen uses the lockfile as-is without updating it.
 RUN if [ "$RUN_UV_LOCK" = "true" ]; then rm -f uv.lock && uv lock; fi && \
-    uv export --frozen --no-emit-project --group dev -o /tmp/requirements.txt && \
+    uv export --frozen --no-emit-project --no-dev -o /tmp/requirements.txt && \
     uv pip install --system -r /tmp/requirements.txt && \
     rm -f /tmp/requirements.txt
 
@@ -44,8 +45,17 @@ RUN python -c "import sys; print(sys.platform, sys.version, sys.maxsize > 2**32)
 # Debug pip installation and list installed packages with verbosity
 RUN uv pip list
 
-# Stage 2: Final runtime image for the application
-FROM public.ecr.aws/docker/library/python:3.12-alpine3.20
+# Stage 2: Add the dev dependency group (pytest, mypy, ruff, bandit, twine, pre-commit) on
+# top of the production install. Only consumed by the `development` stage below.
+FROM python_packages AS python_packages_dev
+
+RUN uv export --frozen --no-emit-project --group dev -o /tmp/requirements.txt && \
+    uv pip install --system -r /tmp/requirements.txt && \
+    rm -f /tmp/requirements.txt
+
+# Stage 3: Production runtime image -- ships only what the `python_packages` stage
+# installed, never the dev dependency group.
+FROM 856965016623.dkr.ecr.us-east-1.amazonaws.com/root-mirror/python:3.12-alpine3.20 AS production
 
 # Set terminal width (COLUMNS) and height (LINES)
 ENV COLUMNS=300
@@ -70,7 +80,7 @@ WORKDIR ${PROJECT_DIR}
 # Copy dependency files into the runtime image
 COPY pyproject.toml uv.lock* ${PROJECT_DIR}/
 
-# Copy installed Python packages from the previous stage
+# Copy installed Python packages from the production-only stage
 COPY --from=python_packages /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages
 COPY --from=python_packages /usr/local/bin /usr/local/bin
 
@@ -95,3 +105,17 @@ RUN chown -R appuser:appgroup ${PROJECT_DIR} /usr/local/lib/python3.12/site-pack
 
 # Switch to the restricted user to enhance security
 USER appuser
+
+# Stage 4: Development image -- production plus the dev tooling, used by docker-compose
+# for local dev/test/pre-commit workflows. Not the default build target (see below).
+FROM production AS development
+
+USER root
+COPY --from=python_packages_dev /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages
+COPY --from=python_packages_dev /usr/local/bin /usr/local/bin
+RUN chown -R appuser:appgroup /usr/local/lib/python3.12/site-packages /usr/local/bin
+USER appuser
+
+# Final stage, re-declared so that `docker build .` with no --target defaults to
+# production, not development (which is the last stage physically defined above).
+FROM production

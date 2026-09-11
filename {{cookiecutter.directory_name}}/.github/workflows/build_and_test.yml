@@ -13,10 +13,16 @@ concurrency:
   group: build-and-test-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
+permissions:
+  contents: read
+  id-token: write
+
 jobs:
   build_and_test:
-    # The type of runner that the job will run on
-    runs-on: ubuntu-latest
+    # Docker images are built from b.well's private root-mirror ECR account, which
+    # requires AWS credentials -- ubuntu-latest has no path to those, so this runs on
+    # b.well's own hosted runner instead (org standard: build-and-ci/ci-runner-selection.md).
+    runs-on: main
 
     steps:
       # Checks-out your repository
@@ -24,6 +30,14 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          aws-region: us-east-1
+
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
 
       - name: Pull docker images
         run: docker compose pull
